@@ -1,0 +1,1416 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEX-ROAD | Intelligent Road System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;scroll-behavior:smooth}
+body{background:#020617;color:#e2e8f0}
+
+.topbar{
+position:fixed;top:0;left:0;right:0;z-index:9999;
+display:flex;justify-content:space-between;align-items:center;
+padding:14px 22px;background:#020617f5;
+backdrop-filter:blur(14px);border-bottom:1px solid #ffffff12
+}
+
+.brand{display:flex;gap:10px;align-items:center}
+.brand-icon{
+width:38px;height:38px;
+background:linear-gradient(135deg,#38bdf8,#a78bfa);
+display:grid;place-items:center;border-radius:10px;
+color:#000;font-weight:900
+}
+.brand h2{letter-spacing:1px}
+.brand h2 span{color:#38bdf8}
+
+.nav{display:flex;gap:8px}
+.nav a{
+padding:8px 14px;border-radius:20px;
+background:#ffffff0d;border:1px solid #ffffff12;
+color:#94a3b8;text-decoration:none;font-size:12px;
+font-weight:600;cursor:pointer;transition:0.2s
+}
+.nav a.active,.nav a:hover{background:#fff;color:#000}
+
+.page{
+min-height:100vh;padding:92px 20px 30px;
+max-width:1280px;margin:auto
+}
+
+.hero{
+display:grid;grid-template-columns:1.1fr 0.9fr;
+gap:22px;align-items:center
+}
+
+.hero h1{font-size:56px;line-height:1.05}
+.hero h1 span{
+background:linear-gradient(90deg,#38bdf8,#a78bfa,#22c55e);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent
+}
+
+.hero p{color:#94a3b8;margin-top:12px;line-height:1.6}
+
+.panel{
+background:#0f172a80;border:1px solid #ffffff12;
+border-radius:18px;padding:16px;
+backdrop-filter:blur(10px)
+}
+
+.btn{
+padding:12px 16px;border-radius:12px;border:none;
+font-weight:800;cursor:pointer;width:100%;
+margin-top:8px;transition:0.2s
+}
+
+.primary{background:#fff;color:#000}
+.primary:hover{transform:translateY(-1px)}
+
+.secondary{
+background:#ffffff0d;color:#fff;
+border:1px solid #ffffff18
+}
+
+#map{
+height:580px;border-radius:18px;
+border:1px solid #ffffff18;background:#000
+}
+
+.live-dot{
+width:18px;height:18px;background:#3b82f6;
+border:3px solid #fff;border-radius:50%;
+box-shadow:0 0 0 8px #3b82f680,0 0 20px #3b82f6
+}
+
+.gmap-icon{
+width:48px;height:48px;border-radius:50%;
+border:2px solid #fff;object-fit:cover;
+box-shadow:0 4px 16px #0008
+}
+
+.car-icon{
+font-size:34px;
+filter:drop-shadow(0 0 10px #38bdf8)
+}
+
+.grid-2{
+display:grid;
+grid-template-columns:2.2fr 1fr;
+gap:16px
+}
+
+.grid-3{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:14px
+}
+
+.grid-4{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:12px
+}
+
+.log{
+max-height:260px;
+overflow:auto;
+background:#020617;
+border-radius:12px;
+padding:10px
+}
+
+.detector{
+position:relative;
+overflow:hidden;
+border-radius:18px;
+padding:18px;
+background:
+radial-gradient(120% 120% at 0% 0%,#ffffff18,transparent),
+#0f172a;
+border:1px solid #ffffff14;
+transition:0.3s
+}
+
+.detector:hover{
+transform:translateY(-4px);
+border-color:#ffffff30
+}
+
+.detector img{
+width:100%;
+height:150px;
+object-fit:contain;
+background:#020617;
+border-radius:14px;
+padding:8px
+}
+
+.detector .tag{
+position:absolute;
+top:12px;
+left:12px;
+padding:4px 10px;
+border-radius:20px;
+font-size:10px;
+font-weight:800;
+letter-spacing:1px
+}
+
+.human .tag{background:#22c55e;color:#000}
+.animal .tag{background:#f59e0b;color:#000}
+.pothole .tag{background:#ef4444;color:#fff}
+
+.data-card{
+background:linear-gradient(180deg,#ffffff0a,#00000000);
+border:1px solid #ffffff12;
+border-radius:16px;
+padding:14px;
+text-align:center
+}
+
+.data-card h2{
+font-size:26px;
+margin-top:6px
+}
+
+.data-card small{
+color:#94a3b8;
+font-size:11px
+}
+
+.status-ok{color:#22c55e}
+.status-warn{color:#f59e0b}
+.status-bad{color:#ef4444}
+
+@media(max-width:950px){
+.hero,.grid-2,.grid-3,.grid-4{
+grid-template-columns:1fr
+}
+.hero h1{font-size:38px}
+#map{height:420px}
+.nav{
+overflow:auto;
+flex-wrap:nowrap
+}
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+<div class="brand">
+<div class="brand-icon">N</div>
+<h2>NEX-<span>ROAD</span></h2>
+</div>
+
+<div class="nav">
+<a href="#home" class="active" onclick="setActive(this)">Home</a>
+<a href="#live" onclick="setActive(this)">Live Tracking</a>
+<a href="#ai" onclick="setActive(this)">AI Detection</a>
+<a href="#report" onclick="setActive(this)">Reports</a>
+</div>
+
+</header>
+
+
+<!-- HOME -->
+<section id="home" class="page">
+
+<div class="hero">
+
+<div>
+
+<h1>
+Roads That <span>Think, See & Protect.</span>
+</h1>
+
+<p>
+NEX-ROAD is a real-time Google Satellite based system
+that tracks your live GPS, detects humans, animals and
+potholes with intelligent road monitoring.
+</p>
+
+<div style="display:flex;gap:10px;margin-top:16px">
+
+<button
+class="btn primary"
+style="width:auto;padding:12px 22px"
+onclick="location.href='#live';askLiveLocation()">
+📍 Enable Live Location
+</button>
+
+<button
+class="btn secondary"
+style="width:auto;padding:12px 22px"
+onclick="location.href='#live';startAutoCar()">
+🚙 Start Tracking
+</button>
+
+</div>
+
+
+<div class="grid-3" style="margin-top:18px">
+
+<div class="data-card">
+<small>ENGINE</small>
+<h2 id="dTemp">84°C</h2>
+<small class="status-ok">Normal</small>
+</div>
+
+<div class="data-card">
+<small>BATTERY</small>
+<h2 id="dBattery">13.8V</h2>
+<small>Charging</small>
+</div>
+
+<div class="data-card">
+<small>TYRE PRESSURE</small>
+<h2 id="dTire">32 PSI</h2>
+<small>All OK</small>
+</div>
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h3 style="margin-bottom:8px">Live Snapshot</h3>
+
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff12;font-size:13px">
+<span>GPS Mode</span>
+<strong id="mode">Demo Route</strong>
+</div>
+
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ffffff12;font-size:13px">
+<span>Location</span>
+<strong id="liveCoords" style="font-size:11px">
+Not tracked yet
+</strong>
+</div>
+
+<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px">
+<span>System</span>
+<strong id="gps" style="color:#22c55e">
+OFF
+</strong>
+</div>
+
+<div style="background:#020617;border-radius:12px;padding:10px;margin-top:10px">
+
+<div style="font-size:42px;font-weight:900;text-align:center">
+<span id="gForce">1.00</span>
+<small style="font-size:14px">G</small>
+</div>
+
+<p id="status"
+style="text-align:center;font-size:12px;color:#94a3b8">
+Waiting for location...
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- LIVE TRACKING -->
+<section id="live" class="page">
+
+<h2 style="font-size:32px">
+Live Satellite Tracking
+</h2>
+
+<p style="color:#94a3b8;margin:6px 0 14px">
+Real Google Map — Blue dot = your real location.
+</p>
+
+<div class="grid-2">
+
+<div class="panel">
+
+<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px;letter-spacing:1px">
+<span style="color:#38bdf8">
+GOOGLE SATELLITE • NEX-ROAD LIVE
+</span>
+<span>🔴 LIVE</span>
+</div>
+
+<div id="map"></div>
+
+<div style="display:flex;gap:10px;margin-top:10px;font-size:11px;color:#94a3b8">
+<span>🔵 You</span>
+<span>🚙 Car</span>
+<span>Human</span>
+<span>🐄 Animal</span>
+<span>🚧 Pothole</span>
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h3>Controls</h3>
+
+<small id="accuracy" style="color:#64748b">
+Accuracy: --
+</small>
+
+<button class="btn primary"
+onclick="askLiveLocation()">
+📍 Enable My Live Location
+</button>
+
+<button class="btn secondary"
+onclick="startLiveTracking()">
+🔵 Real-Time Track Me
+</button>
+
+<button class="btn secondary"
+onclick="startAutoCar()">
+🚙 Demo Auto Drive
+</button>
+
+<div style="height:1px;background:#ffffff12;margin:12px 0"></div>
+
+<button class="btn secondary"
+onclick="simulateHuman()">
+Test Human →
+</button>
+
+<button class="btn secondary"
+onclick="simulateAnimal()">
+Test Animal →
+</button>
+
+<button class="btn secondary"
+onclick="simulatePothole()">
+Test Pothole →
+</button>
+
+<div
+style="margin-top:12px"
+class="log"
+id="log">
+Waiting for GPS...
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- AI DETECTION -->
+<section id="ai" class="page">
+
+<h2 style="font-size:32px">
+AI Detection System
+</h2>
+
+<p style="color:#94a3b8;margin:6px 0 16px">
+Intelligent road detection — click any card to test on live map.
+</p>
+
+
+<div class="grid-3">
+
+
+<!-- HUMAN -->
+<div
+class="detector human"
+onclick="simulateHuman();location.href='#live'">
+
+<span class="tag">
+HUMAN
+</span>
+
+<div style="
+width:100%;
+height:150px;
+background:#020617;
+border-radius:14px;
+display:grid;
+place-items:center;
+font-size:80px;
+">
+🧍
+</div>
+
+<h3 style="margin-top:10px">
+Human Detected
+</h3>
+
+<p style="font-size:12px;color:#94a3b8;margin:6px 0">
+Human presence detected near the road.
+The safety system can trigger an automatic warning.
+</p>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+
+<strong id="hCount" style="color:#22c55e">
+0 Detected
+</strong>
+
+<span style="font-size:11px;color:#64748b">
+AI Confidence 98%
+</span>
+
+</div>
+
+<button class="btn secondary" style="margin-top:10px">
+Test Now →
+</button>
+
+</div>
+
+
+<!-- ANIMAL -->
+<div
+class="detector animal"
+onclick="simulateAnimal();location.href='#live'">
+
+<span class="tag">
+ANIMAL
+</span>
+
+<img
+src="https://images.unsplash.com/photo-1527153857715-3908f2bae5e8?w=400&h=400&fit=crop"
+alt="animal">
+
+<h3 style="margin-top:10px">
+Animal On Road
+</h3>
+
+<p style="font-size:12px;color:#94a3b8;margin:6px 0">
+Animal detected on road with location marking
+and safety alert.
+</p>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+
+<strong id="aCount" style="color:#f59e0b">
+0 Detected
+</strong>
+
+<span style="font-size:11px;color:#64748b">
+AI Confidence 96%
+</span>
+
+</div>
+
+<button class="btn secondary" style="margin-top:10px">
+Test Now →
+</button>
+
+</div>
+
+
+<!-- POTHOLE -->
+<div
+class="detector pothole"
+onclick="simulatePothole();location.href='#live'">
+
+<span class="tag">
+POTHOLE • G-FORCE
+</span>
+
+<img
+src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400&h=400&fit=crop"
+alt="pothole">
+
+<h3 style="margin-top:10px">
+Pothole Impact
+</h3>
+
+<p style="font-size:12px;color:#94a3b8;margin:6px 0">
+G-Force based pothole detection with
+GPS location tagging for road safety.
+</p>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+
+<strong id="pCount" style="color:#ef4444">
+0 Detected
+</strong>
+
+<span
+style="font-size:11px;color:#64748b"
+id="dG">
+1.00 G Live
+</span>
+
+</div>
+
+<button class="btn secondary" style="margin-top:10px">
+Test Now →
+</button>
+
+</div>
+
+</div>
+
+
+<div class="grid-4" style="margin-top:18px">
+
+<div class="data-card">
+<small>FUEL</small>
+<h2 id="dFuel">68%</h2>
+<small>420 km</small>
+</div>
+
+<div class="data-card">
+<small>ODOMETER</small>
+<h2 id="dOdo">0.00 km</h2>
+<small>Today drive</small>
+</div>
+
+<div class="data-card">
+<small>BRAKE</small>
+<h2 id="dBrake" style="color:#22c55e">
+READY
+</h2>
+<small>Auto brake</small>
+</div>
+
+<div class="data-card">
+<small>AI ENGINE</small>
+<h2 style="color:#a78bfa">
+ACTIVE
+</h2>
+<small>All models loaded</small>
+</div>
+
+</div>
+
+</section>
+
+
+<!-- REPORT -->
+<section id="report" class="page">
+
+<h2 style="font-size:32px">
+Reports & Intelligence
+</h2>
+
+<div class="grid-2" style="margin-top:14px">
+
+
+<div class="panel">
+
+<h3>Live Feed</h3>
+
+<div
+id="carLog"
+class="log"
+style="margin-top:10px">
+No events yet. Start live tracking.
+</div>
+
+<button
+class="btn secondary"
+onclick="
+document.getElementById('carLog').innerHTML='Cleared';
+document.getElementById('log').innerHTML='Cleared';
+">
+Clear All Logs
+</button>
+
+</div>
+
+
+<div class="panel">
+
+<h3>Municipal Action</h3>
+
+<p style="color:#94a3b8;font-size:12px;margin:8px 0">
+NEX-ROAD generates a report with location,
+proof data and road safety information.
+</p>
+
+<div
+style="background:#020617;border-radius:12px;padding:12px;font-size:13px;line-height:1.8">
+
+<div style="display:flex;justify-content:space-between">
+<span style="color:#64748b">System</span>
+<strong>NEX-ROAD v3</strong>
+</div>
+
+<div style="display:flex;justify-content:space-between">
+<span style="color:#64748b">Map Source</span>
+<strong>Google Satellite</strong>
+</div>
+
+<div style="display:flex;justify-content:space-between">
+<span style="color:#64748b">Proof Type</span>
+<strong>Photo + GPS + G-Force</strong>
+</div>
+
+<div style="display:flex;justify-content:space-between">
+<span style="color:#64748b">Privacy</span>
+<strong>On-device</strong>
+</div>
+
+</div>
+
+<button
+class="btn primary"
+style="background:#22c55e;margin-top:12px"
+onclick="alert('NEX-ROAD Report Sent with Live GPS & Photo Proof!')">
+🏛️ Send Live Report
+</button>
+
+<button
+class="btn secondary"
+onclick="location.href='#home'">
+Back to Home ↑
+</button>
+
+<div style="margin-top:16px;color:#475569;font-size:11px;text-align:center">
+NEX-ROAD • Intelligent Road Monitoring • Built for Hackathon
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+let map,carMarker,liveMarker,interval=null,watchId=null,idx=0;
+let lastPosition=null;
+
+const demoRoute=[
+[22.0947,80.5368],
+[22.0962,80.5382],
+[22.0978,80.5398],
+[22.0992,80.5415],
+[22.1008,80.5432],
+[22.1022,80.5448]
+];
+
+function el(id){
+return document.getElementById(id)
+}
+
+function safeText(id,v){
+let n=el(id);
+if(n)n.innerText=v
+}
+
+function addLog(t,c){
+
+let log=el('log'),
+clog=el('carLog');
+
+if(log && log.innerText.includes('Waiting'))
+log.innerHTML='';
+
+let d=document.createElement('div');
+
+d.style=
+`padding:7px;
+border-left:3px solid ${c};
+margin-bottom:6px;
+background:#0f172a;
+border-radius:8px;
+font-size:12px`;
+
+d.innerHTML=
+`<small style="color:#64748b">
+${new Date().toLocaleTimeString()}
+</small> - ${t}`;
+
+if(log)log.prepend(d);
+
+if(clog){
+let cd=d.cloneNode(true);
+clog.prepend(cd);
+}
+
+}
+
+function distanceKm(a,b){
+
+if(!a||!b)return 0;
+
+const R=6371;
+
+const dLat=(b.lat-a.lat)*Math.PI/180;
+const dLng=(b.lng-a.lng)*Math.PI/180;
+
+const x=
+Math.sin(dLat/2)**2+
+Math.cos(a.lat*Math.PI/180)*
+Math.cos(b.lat*Math.PI/180)*
+Math.sin(dLng/2)**2;
+
+return R*2*Math.atan2(
+Math.sqrt(x),
+Math.sqrt(1-x)
+);
+
+}
+
+
+function initMap(){
+
+map=L.map('map').setView(
+demoRoute[0],19
+);
+
+let gSat=L.tileLayer(
+'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+{
+maxZoom:22,
+attribution:'Google'
+}
+);
+
+gSat.addTo(map);
+
+L.control.layers({
+"Google Satellite":gSat
+}).addTo(map);
+
+let carIcon=L.divIcon({
+className:'car-icon',
+html:'🚙',
+iconSize:[40,40]
+});
+
+carMarker=L.marker(
+demoRoute[0],
+{icon:carIcon}
+).addTo(map);
+
+setTimeout(
+()=>map.invalidateSize(),
+250
+);
+
+}
+
+
+window.addEventListener(
+'load',
+()=>{
+initMap();
+setTimeout(
+()=>askLiveLocation(),
+1000
+);
+});
+
+
+function askLiveLocation(){
+
+if(!navigator.geolocation){
+safeText(
+'status',
+'GPS not supported'
+);
+return;
+}
+
+safeText(
+'status',
+'📍 Asking location permission...'
+);
+
+if(el('log'))
+el('log').innerHTML=
+'<div>📍 Requesting location...</div>';
+
+navigator.geolocation.getCurrentPosition(
+
+(pos)=>{
+handleLive(pos,true);
+startLiveTracking();
+},
+
+(err)=>{
+safeText(
+'status',
+'Location off - using demo'
+);
+
+safeText(
+'gps',
+'Demo'
+);
+
+startAutoCar();
+
+},
+
+{
+enableHighAccuracy:true,
+timeout:10000,
+maximumAge:0
+}
+
+);
+
+}
+
+
+function startLiveTracking(){
+
+if(!navigator.geolocation)return;
+
+if(watchId!==null)
+navigator.geolocation.clearWatch(
+watchId
+);
+
+if(interval){
+clearInterval(interval);
+interval=null;
+}
+
+safeText(
+'mode',
+'Live GPS Active'
+);
+
+watchId=
+navigator.geolocation.watchPosition(
+
+(pos)=>{
+handleLive(pos,false)
+},
+
+()=>{},
+
+{
+enableHighAccuracy:true,
+maximumAge:0,
+timeout:10000
+}
+
+);
+
+addLog(
+'🔵 Live tracking started',
+'#3b82f6'
+);
+
+}
+
+
+function handleLive(pos,first){
+
+let lat=pos.coords.latitude;
+let lng=pos.coords.longitude;
+
+let acc=
+pos.coords.accuracy?
+Math.round(pos.coords.accuracy):
+'--';
+
+let current={lat,lng};
+
+if(lastPosition){
+
+let moved=
+distanceKm(
+lastPosition,
+current
+);
+
+if(
+moved>0.001 &&
+moved<1
+){
+
+let odo=el('dOdo');
+
+let cur=
+parseFloat(
+(odo?.innerText||'0')
+.replace(/[^\d.]/g,'')
+)||0;
+
+safeText(
+'dOdo',
+(cur+moved).toFixed(2)+' km'
+);
+
+}
+
+}
+
+lastPosition=current;
+
+safeText(
+'gps',
+'Live ON'
+);
+
+safeText(
+'liveCoords',
+lat.toFixed(6)+', '+lng.toFixed(6)
+);
+
+safeText(
+'accuracy',
+'Accuracy: '+acc+'m'
+);
+
+safeText(
+'status',
+first?
+'✅ Live location active':
+'🔵 Tracking'
+);
+
+safeText(
+'mode',
+'Live GPS'
+);
+
+
+if(liveMarker)
+
+liveMarker.setLatLng(
+[lat,lng]
+);
+
+else{
+
+let liveIcon=L.divIcon({
+
+className:'',
+
+html:
+'<div class="live-dot"></div>',
+
+iconSize:[18,18],
+
+iconAnchor:[9,9]
+
+});
+
+liveMarker=
+L.marker(
+[lat,lng],
+{icon:liveIcon}
+)
+.addTo(map)
+.bindPopup(
+'🔵 You are here - NEX-ROAD'
+);
+
+}
+
+
+carMarker.setLatLng(
+[lat,lng]
+);
+
+map.panTo(
+[lat,lng],
+{animate:true}
+);
+
+
+if(first){
+
+map.setView(
+[lat,lng],
+19
+);
+
+liveMarker.openPopup();
+
+addLog(
+`🔵 LIVE ENABLED ${lat.toFixed(5)},${lng.toFixed(5)}`,
+'#3b82f6'
+);
+
+}
+
+
+safeText(
+'dTemp',
+(80+Math.random()*10).toFixed(1)+'°C'
+);
+
+safeText(
+'dBattery',
+(13.2+Math.random()*0.8).toFixed(1)+'V'
+);
+
+safeText(
+'dTire',
+(30+Math.random()*4).toFixed(0)+' PSI'
+);
+
+safeText(
+'dFuel',
+Math.floor(
+60+Math.random()*20
+)+'%'
+);
+
+}
+
+
+function startAutoCar(){
+
+if(interval)
+clearInterval(interval);
+
+if(watchId!==null){
+
+navigator.geolocation.clearWatch(
+watchId
+);
+
+watchId=null;
+
+}
+
+safeText(
+'mode',
+'Demo Route'
+);
+
+safeText(
+'status',
+'🚙 Demo driving'
+);
+
+safeText(
+'gps',
+'Demo Mode'
+);
+
+interval=setInterval(
+
+()=>{
+
+idx=
+(idx+1)%demoRoute.length;
+
+let pos=
+demoRoute[idx];
+
+carMarker.setLatLng(pos);
+
+map.panTo(
+pos,
+{animate:true}
+);
+
+let g=
+(1+Math.random()*0.3)
+.toFixed(2);
+
+safeText(
+'gForce',
+g
+);
+
+safeText(
+'dG',
+g+' G'
+);
+
+let odo=el('dOdo');
+
+let cur=
+parseFloat(
+(odo?.innerText||'0')
+.replace(/[^\d.]/g,'')
+)||0;
+
+safeText(
+'dOdo',
+(cur+0.01).toFixed(2)+' km'
+);
+
+let r=Math.random();
+
+if(r<0.06)
+simulatePothole(pos);
+
+else if(r<0.10)
+simulateHuman(pos);
+
+else if(r<0.14)
+simulateAnimal(pos);
+
+},
+1200
+);
+
+}
+
+
+function simulatePothole(p){
+
+let pos=
+p||carMarker.getLatLng();
+
+let g=
+(2.8+Math.random()*2)
+.toFixed(2);
+
+let icon=
+L.divIcon({
+
+html:
+`<img
+class="gmap-icon"
+style="border-color:#ef4444"
+src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=100">`,
+
+iconSize:[48,48],
+
+iconAnchor:[24,24]
+
+});
+
+L.marker(
+pos,
+{icon:icon}
+)
+.addTo(map)
+.bindPopup(
+`🚧 Pothole ${g}G`
+)
+.openPopup();
+
+addLog(
+`🚧 Pothole ${g}G`,
+'#ef4444'
+);
+
+safeText(
+'gForce',
+g
+);
+
+safeText(
+'dG',
+g+' G'
+);
+
+safeText(
+'dBrake',
+'HIT!'
+);
+
+let b=el('dBrake');
+
+if(b)
+b.style.color='#ef4444';
+
+setTimeout(
+()=>{
+safeText(
+'dBrake',
+'READY'
+);
+
+if(b)
+b.style.color='#22c55e';
+
+},
+1500
+);
+
+let c=el('pCount');
+
+if(c)
+c.innerText=
+(parseInt(c.innerText)||0)+1;
+
+}
+
+
+function simulateHuman(p){
+
+let pos=
+p||carMarker.getLatLng();
+
+let icon=
+L.divIcon({
+
+html:
+`<div style="
+background:#22c55e;
+width:48px;
+height:48px;
+border-radius:50%;
+display:grid;
+place-items:center;
+border:2px solid #fff;
+box-shadow:0 4px 12px #0008;
+font-size:24px">
+🧍
+</div>`,
+
+iconSize:[48,48],
+
+iconAnchor:[24,24]
+
+});
+
+L.marker(
+pos,
+{icon:icon}
+)
+.addTo(map)
+.bindPopup(
+`<b>Human Detected</b><br>
+NEX-ROAD Safety Alert`
+)
+.openPopup();
+
+addLog(
+'🧍 Human - Braking',
+'#22c55e'
+);
+
+safeText(
+'status',
+'🧍 Human ahead - Braked'
+);
+
+safeText(
+'dBrake',
+'BRAKING'
+);
+
+let c=el('hCount');
+
+if(c)
+c.innerText=
+(parseInt(c.innerText)||0)+1;
+
+}
+
+
+function simulateAnimal(p){
+
+let pos=
+p||carMarker.getLatLng();
+
+let icon=
+L.divIcon({
+
+html:
+`<img
+class="gmap-icon"
+style="border-color:#f59e0b"
+src="https://images.unsplash.com/photo-1527153857715-3908f2bae5e8?w=100">`,
+
+iconSize:[48,48],
+
+iconAnchor:[24,24]
+
+});
+
+L.marker(
+pos,
+{icon:icon}
+)
+.addTo(map)
+.bindPopup(
+`🐄 Animal Detected`
+)
+.openPopup();
+
+addLog(
+'🐄 Animal - Stopped',
+'#f59e0b'
+);
+
+safeText(
+'status',
+'🐄 Animal on road'
+);
+
+safeText(
+'dBrake',
+'STOPPED'
+);
+
+let c=el('aCount');
+
+if(c)
+c.innerText=
+(parseInt(c.innerText)||0)+1;
+
+}
+
+
+function setActive(a){
+
+document
+.querySelectorAll('.nav a')
+.forEach(
+x=>x.classList.remove('active')
+);
+
+a.classList.add('active');
+
+setTimeout(
+()=>map && map.invalidateSize(),
+250
+);
+
+}
+
+
+window.addEventListener(
+'hashchange',
+()=>{
+
+let h=
+location.hash||'#home';
+
+document
+.querySelectorAll('.nav a')
+.forEach(
+a=>{
+a.classList.toggle(
+'active',
+a.getAttribute('href')===h
+);
+}
+);
+
+setTimeout(
+()=>map && map.invalidateSize(),
+300
+);
+
+}
+);
+
+</script>
+
+</body>
+</html>
+```
